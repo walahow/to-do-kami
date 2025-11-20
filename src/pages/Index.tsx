@@ -87,12 +87,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-500">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <CheckCircle2 className="h-10 w-10 text-primary" />
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <div className="p-2 bg-primary/10 rounded-2xl shadow-sm">
+              <CheckCircle2 className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
               My Tasks
             </h1>
           </div>
@@ -101,7 +103,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="bg-card rounded-2xl shadow-lg border border-border p-6 md:p-8 space-y-6 animate-in fade-in slide-in-from-bottom duration-700">
+        <div className="bg-card rounded-2xl shadow-lg border border-border p-6 md:p-8 space-y-6 backdrop-blur-sm">
           <TodoInput onAdd={addTodo} />
 
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -114,7 +116,7 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={exportToJSON}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md"
                 disabled={todos.length === 0}
               >
                 <Download className="h-4 w-4" />

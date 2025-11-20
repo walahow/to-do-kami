@@ -35,7 +35,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Tambahkan task baru..."
-        className="w-full bg-card border-border focus-visible:ring-primary"
+        className="w-full bg-card border-border focus-visible:ring-primary rounded-xl shadow-sm focus:shadow-md transition-shadow"
       />
       
       <div className="flex gap-2 flex-wrap">
@@ -44,7 +44,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
             <Button
               variant="outline"
               className={cn(
-                "flex-1 min-w-[180px] justify-start text-left font-normal",
+                "flex-1 min-w-[180px] justify-start text-left font-normal rounded-xl",
                 !deadline && "text-muted-foreground"
               )}
             >
@@ -65,7 +65,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
         </Popover>
 
         <Select value={priority.toString()} onValueChange={(value) => setPriority(parseInt(value) as Priority)}>
-          <SelectTrigger className="flex-1 min-w-[180px] bg-card">
+          <SelectTrigger className="flex-1 min-w-[180px] bg-card rounded-xl">
             <SelectValue placeholder="Pilih prioritas" />
           </SelectTrigger>
           <SelectContent>
@@ -77,7 +77,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
           </SelectContent>
         </Select>
 
-        <Button type="submit" className="bg-primary hover:bg-primary/90">
+        <Button type="submit" className="bg-primary hover:bg-primary/90 rounded-xl shadow-md hover:shadow-lg">
           <Plus className="h-5 w-5 mr-2" />
           Tambah
         </Button>
