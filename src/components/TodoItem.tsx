@@ -16,11 +16,12 @@ interface TodoItemProps {
   onDelete: (id: string) => void;
 }
 
-const priorityConfig = {
-  low: { label: "Rendah", color: "bg-success/10 text-success border-success/20" },
-  medium: { label: "Sedang", color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-500/20" },
-  high: { label: "Tinggi", color: "bg-orange-500/10 text-orange-600 dark:text-orange-500 border-orange-500/20" },
-  urgent: { label: "Urgent", color: "bg-destructive/10 text-destructive border-destructive/20" },
+const priorityConfig: Record<Priority, { label: string; color: string }> = {
+  1: { label: "Prioritas 1", color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700" },
+  2: { label: "Prioritas 2", color: "bg-success/10 text-success border-success/20" },
+  3: { label: "Prioritas 3", color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-500/20" },
+  4: { label: "Prioritas 4", color: "bg-orange-500/10 text-orange-600 dark:text-orange-500 border-orange-500/20" },
+  5: { label: "Prioritas 5", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 export const TodoItem = ({ id, text, completed, deadline, priority, onToggle, onDelete }: TodoItemProps) => {
