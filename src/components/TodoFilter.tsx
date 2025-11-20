@@ -28,10 +28,10 @@ export const TodoFilter = ({ currentFilter, onFilterChange, counts }: TodoFilter
           variant={currentFilter === filter.value ? "default" : "outline"}
           onClick={() => onFilterChange(filter.value)}
           className={cn(
-            "transition-all duration-200",
+            "transition-all duration-200 rounded-xl",
             currentFilter === filter.value
-              ? "bg-primary text-primary-foreground"
-              : "bg-card hover:bg-secondary"
+              ? "bg-primary text-primary-foreground shadow-md"
+              : "bg-card hover:bg-secondary shadow-sm"
           )}
         >
           {filter.label} ({filter.count})

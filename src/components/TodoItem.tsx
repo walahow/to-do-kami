@@ -32,7 +32,7 @@ export const TodoItem = ({ id, text, completed, deadline, priority, onToggle, on
   return (
     <div
       className={cn(
-        "group flex flex-col gap-3 p-4 bg-card rounded-lg border transition-all duration-300 hover:shadow-md",
+        "group flex flex-col gap-3 p-4 bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-200",
         completed && "opacity-60",
         isOverdue && !completed && "border-destructive/50 bg-destructive/5",
         isUrgent && !completed && "border-orange-500/50 bg-orange-500/5"
