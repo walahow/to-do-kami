@@ -8,7 +8,7 @@ import { Plus, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export type Priority = "low" | "medium" | "high" | "urgent";
+export type Priority = 1 | 2 | 3 | 4 | 5;
 
 interface TodoInputProps {
   onAdd: (text: string, deadline: Date | null, priority: Priority) => void;
@@ -17,7 +17,7 @@ interface TodoInputProps {
 export const TodoInput = ({ onAdd }: TodoInputProps) => {
   const [text, setText] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>();
-  const [priority, setPriority] = useState<Priority>("medium");
+  const [priority, setPriority] = useState<Priority>(3);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +25,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
       onAdd(text.trim(), deadline || null, priority);
       setText("");
       setDeadline(undefined);
-      setPriority("medium");
+      setPriority(3);
     }
   };
 
@@ -64,15 +64,16 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
           </PopoverContent>
         </Popover>
 
-        <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
+        <Select value={priority.toString()} onValueChange={(value) => setPriority(parseInt(value) as Priority)}>
           <SelectTrigger className="flex-1 min-w-[180px] bg-card">
             <SelectValue placeholder="Pilih prioritas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="low">🟢 Rendah</SelectItem>
-            <SelectItem value="medium">🟡 Sedang</SelectItem>
-            <SelectItem value="high">🟠 Tinggi</SelectItem>
-            <SelectItem value="urgent">🔴 Urgent</SelectItem>
+            <SelectItem value="1">⚪ Prioritas 1 (Terendah)</SelectItem>
+            <SelectItem value="2">🟢 Prioritas 2</SelectItem>
+            <SelectItem value="3">🟡 Prioritas 3</SelectItem>
+            <SelectItem value="4">🟠 Prioritas 4</SelectItem>
+            <SelectItem value="5">🔴 Prioritas 5 (Tertinggi)</SelectItem>
           </SelectContent>
         </Select>
 

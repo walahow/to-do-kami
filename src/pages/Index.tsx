@@ -66,10 +66,9 @@ const Index = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sort by priority first (urgent > high > medium > low)
-      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      // Sort by priority first (5 = highest, 1 = lowest)
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority; // Higher priority first
       }
       // Then by deadline (earlier deadlines first, null deadlines last)
       if (a.deadline && b.deadline) {
