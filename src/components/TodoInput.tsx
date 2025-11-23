@@ -1,31 +1,29 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Plus, Clock, Timer, TrendingUp } from "lucide-react";
 
-export type Priority = 1 | 2 | 3 | 4 | 5;
+export type Difficulty = 1 | 2 | 3 | 4 | 5;
 
 interface TodoInputProps {
-  onAdd: (text: string, deadline: Date | null, priority: Priority) => void;
+  onAdd: (text: string, deadlineHours: number, durationHours: number, difficulty: Difficulty) => void;
 }
 
 export const TodoInput = ({ onAdd }: TodoInputProps) => {
   const [text, setText] = useState("");
-  const [deadline, setDeadline] = useState<Date | undefined>();
-  const [priority, setPriority] = useState<Priority>(3);
+  const [deadlineHours, setDeadlineHours] = useState<number>(24);
+  const [durationHours, setDurationHours] = useState<number>(1);
+  const [difficulty, setDifficulty] = useState<Difficulty>(3);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim()) {
-      onAdd(text.trim(), deadline || null, priority);
+    if (text.trim() && deadlineHours > 0 && durationHours > 0) {
+      onAdd(text.trim(), deadlineHours, durationHours, difficulty);
       setText("");
-      setDeadline(undefined);
-      setPriority(3);
+      setDeadlineHours(24);
+      setDurationHours(1);
+      setDifficulty(3);
     }
   };
 
@@ -38,50 +36,63 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
         className="w-full bg-card border-border focus-visible:ring-primary rounded-xl shadow-sm focus:shadow-md transition-shadow"
       />
       
-      <div className="flex gap-2 flex-wrap">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "flex-1 min-w-[180px] justify-start text-left font-normal rounded-xl",
-                !deadline && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {deadline ? format(deadline, "PPP") : "Pilih deadline"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={deadline}
-              onSelect={setDeadline}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-            />
-          </PopoverContent>
-        </Popover>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            Deadline (jam dari sekarang)
+          </label>
+          <Input
+            type="number"
+            min="0.5"
+            step="0.5"
+            value={deadlineHours}
+            onChange={(e) => setDeadlineHours(parseFloat(e.target.value) || 0)}
+            placeholder="24"
+            className="w-full bg-card border-border rounded-xl shadow-sm"
+          />
+        </div>
 
-        <Select value={priority.toString()} onValueChange={(value) => setPriority(parseInt(value) as Priority)}>
-          <SelectTrigger className="flex-1 min-w-[180px] bg-card rounded-xl">
-            <SelectValue placeholder="Pilih prioritas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="1">⚪ Prioritas 1 (Terendah)</SelectItem>
-            <SelectItem value="2">🟢 Prioritas 2</SelectItem>
-            <SelectItem value="3">🟡 Prioritas 3</SelectItem>
-            <SelectItem value="4">🟠 Prioritas 4</SelectItem>
-            <SelectItem value="5">🔴 Prioritas 5 (Tertinggi)</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground flex items-center gap-1">
+            <Timer className="h-3.5 w-3.5" />
+            Durasi (jam)
+          </label>
+          <Input
+            type="number"
+            min="0.5"
+            step="0.5"
+            value={durationHours}
+            onChange={(e) => setDurationHours(parseFloat(e.target.value) || 0)}
+            placeholder="1"
+            className="w-full bg-card border-border rounded-xl shadow-sm"
+          />
+        </div>
 
-        <Button type="submit" className="bg-primary hover:bg-primary/90 rounded-xl shadow-md hover:shadow-lg">
-          <Plus className="h-5 w-5 mr-2" />
-          Tambah
-        </Button>
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground flex items-center gap-1">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Difficulty (1-5)
+          </label>
+          <Select value={difficulty.toString()} onValueChange={(value) => setDifficulty(parseInt(value) as Difficulty)}>
+            <SelectTrigger className="w-full bg-card rounded-xl shadow-sm">
+              <SelectValue placeholder="Pilih difficulty" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">⚪ Level 1 (Termudah)</SelectItem>
+              <SelectItem value="2">🟢 Level 2</SelectItem>
+              <SelectItem value="3">🟡 Level 3</SelectItem>
+              <SelectItem value="4">🟠 Level 4</SelectItem>
+              <SelectItem value="5">🔴 Level 5 (Tersulit)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      <Button type="submit" className="w-full bg-primary hover:bg-primary/90 rounded-xl shadow-md hover:shadow-lg">
+        <Plus className="h-5 w-5 mr-2" />
+        Tambah Task
+      </Button>
     </form>
   );
 };
