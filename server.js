@@ -31,24 +31,42 @@ app.post('/api/save-tasks', async (req, res) => {
     }
 });
 
-// Endpoint to run Python script
-app.post('/api/run-sa', (req, res) => {
-    console.log('Starting Python script...');
+// Endpoint to run Python script with SSE
+app.get('/api/run-sa', (req, res) => {
+    console.log('Starting Python script (Headless)...');
 
-    // Spawn the python process
-    // We set the CWD to the Python directory so it finds the JSON file easily
-    const pythonProcess = spawn('python', [PYTHON_SCRIPT], {
-        cwd: PYTHON_DIR,
-        stdio: 'inherit' // This allows the GUI to show up and output to flow to console
+    // SSE Headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const pythonProcess = spawn('python', [PYTHON_SCRIPT, '--headless'], {
+        cwd: PYTHON_DIR
     });
 
-    pythonProcess.on('error', (err) => {
-        console.error('Failed to start Python script:', err);
-        return res.status(500).json({ success: false, error: 'Failed to start Python script' });
+    pythonProcess.stdout.on('data', (data) => {
+        const lines = data.toString().split('\n');
+        for (const line of lines) {
+            if (line.trim()) {
+                res.write(`data: ${line}\n\n`);
+            }
+        }
     });
 
-    // We don't wait for it to finish because it's a GUI app that might stay open
-    res.json({ success: true, message: 'Python script started' });
+    pythonProcess.stderr.on('data', (data) => {
+        console.error(`Python Error: ${data}`);
+        res.write(`data: ${JSON.stringify({ type: 'error', message: data.toString() })}\n\n`);
+    });
+
+    pythonProcess.on('close', (code) => {
+        console.log(`Python script exited with code ${code}`);
+        res.write('event: close\ndata: done\n\n');
+        res.end();
+    });
+
+    req.on('close', () => {
+        pythonProcess.kill();
+    });
 });
 
 app.listen(PORT, () => {

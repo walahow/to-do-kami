@@ -59,6 +59,9 @@ const Index = () => {
 
   const runSAnnealing = async () => {
     try {
+      setChartData([]);
+      setLogs([]);
+
       // Transform data for Python script
       const pythonTasks = todos.map(todo => ({
         name: todo.text,
@@ -78,16 +81,53 @@ const Index = () => {
 
       if (!saveResponse.ok) throw new Error('Gagal menyimpan data task');
 
-      // 2. Run Python script
-      const runResponse = await fetch('http://localhost:3001/api/run-sa', {
-        method: 'POST',
+      toast.success("Memulai Simulated Annealing...", {
+        description: "Menghubungkan ke Python script..."
       });
 
-      if (!runResponse.ok) throw new Error('Gagal menjalankan Python script');
+      // 2. Connect to SSE endpoint
+      const eventSource = new EventSource('http://localhost:3001/api/run-sa');
 
-      toast.success("Simulated Annealing berjalan!", {
-        description: "Aplikasi Python telah dibuka."
-      });
+      eventSource.onmessage = (event) => {
+        if (event.data === 'done') {
+          eventSource.close();
+          toast.success("Optimisasi Selesai!");
+          return;
+        }
+
+        try {
+          const msg = JSON.parse(event.data);
+
+          if (msg.type === 'start') {
+            setLogs(prev => [...prev, `Mulai SA: Score awal = ${msg.data.initial_cost.toFixed(4)}`]);
+            setChartData([{ iteration: 0, cost: msg.data.initial_cost }]);
+          }
+          else if (msg.type === 'temp_change') {
+            setLogs(prev => [...prev, `Turun suhu: T = ${msg.data.T.toFixed(5)}`]);
+          }
+          else if (msg.type === 'progress') {
+            setChartData(prev => [...prev, { iteration: msg.data.iter, cost: msg.data.best_cost }]);
+            setLogs(prev => [...prev, `Iter ${msg.data.iter} | T=${msg.data.T.toFixed(4)} | Score=${msg.data.best_cost.toFixed(4)}`]);
+          }
+          else if (msg.type === 'finish') {
+            setLogs(prev => [...prev, `SA Selesai. Best Score = ${msg.data.best_cost.toFixed(4)}`]);
+            // Optional: Update todos order based on best_order if you want to reflect it in UI
+          }
+          else if (msg.type === 'error') {
+            toast.error("Python Error", { description: msg.message });
+            setLogs(prev => [...prev, `ERROR: ${msg.message}`]);
+          }
+        } catch (e) {
+          console.error("Error parsing SSE data:", e);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("EventSource failed:", err);
+        eventSource.close();
+        toast.error("Koneksi terputus");
+      };
+
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan", {
@@ -208,32 +248,32 @@ const Index = () => {
         <div className="space-y-6">
           {/* Chart Section */}
           <div className="bg-card rounded-2xl shadow-lg border border-border p-6 backdrop-blur-sm">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Grafik Best Cost vs Iterasi</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Grafik Best Score vs Iterasi</h2>
             <div className="h-[300px] w-full">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis 
-                      dataKey="iteration" 
+                    <XAxis
+                      dataKey="iteration"
                       label={{ value: 'Iterasi', position: 'insideBottom', offset: -5 }}
                       className="text-muted-foreground"
                     />
-                    <YAxis 
-                      label={{ value: 'Best Cost', angle: -90, position: 'insideLeft' }}
+                    <YAxis
+                      label={{ value: 'Best Score', angle: -90, position: 'insideLeft' }}
                       className="text-muted-foreground"
                     />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="cost" 
-                      stroke="hsl(var(--primary))" 
+                    <Line
+                      type="monotone"
+                      dataKey="cost"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ fill: 'hsl(var(--primary))', r: 3 }}
                     />

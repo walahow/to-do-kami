@@ -2,18 +2,16 @@ import json
 import math
 import os
 import random
+import sys
+import argparse
+import time
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
 
 # ---- Matplotlib dan Tkinter GUI ----
+# Hanya import jika TIDAK headless (akan dihandle di main)
 import matplotlib
-matplotlib.use("TkAgg")
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-import tkinter as tk
-from tkinter import ttk, messagebox
+# matplotlib.use("TkAgg") # Dipindah ke main agar tidak error di environment tanpa display
 
 HISTORY_FILE = "tasks_history.json"
 
@@ -59,21 +57,20 @@ def neighbour(order: List[int]) -> List[int]:
 
 
 # =========================================================
-#  SA Visualizer: jalan step-by-step pakai Tkinter .after
+#  SA Logic (Decoupled from GUI)
 # =========================================================
-class SAVisualizer:
-    def __init__(self, gui, tasks: List[Task],
+class SAEngine:
+    def __init__(self, tasks: List[Task],
                  T_max=100.0, T_min=0.1,
-                 alpha=0.95, iter_per_T=500):
-        self.gui = gui
+                 alpha=0.95, iter_per_T=500,
+                 callback=None):
         self.tasks = tasks
         self.T_max = T_max
         self.T_min = T_min
         self.alpha = alpha
         self.iter_per_T = iter_per_T
+        self.callback = callback  # function(event_type, data)
 
-        # state SA
-        self.running = False
         self.n = len(tasks)
         self.current_order: List[int] = []
         self.current_cost: float = 0.0
@@ -82,72 +79,54 @@ class SAVisualizer:
         self.T: float = T_max
         self.iter_at_T: int = 0
         self.global_iter: int = 0
-
-        # untuk plotting
-        self.iter_history: List[int] = []
-        self.cost_history: List[float] = []
+        self.running = False
 
     def start(self):
         if self.n == 0:
-            messagebox.showwarning("Peringatan", "Tidak ada tugas untuk dioptimasi.")
+            if self.callback:
+                self.callback("error", "Tidak ada tugas untuk dioptimasi.")
             return
 
-        # inisialisasi SA
         self.running = True
         self.T = self.T_max
         self.iter_at_T = 0
         self.global_iter = 0
-        # solusi awal: sort by deadline
+        
+        # Solusi awal
         self.current_order = sorted(range(self.n), key=lambda i: self.tasks[i].deadline)
         self.current_cost = compute_cost(self.current_order, self.tasks)
         self.best_order = self.current_order[:]
         self.best_cost = self.current_cost
 
-        self.iter_history = [0]
-        self.cost_history = [self.best_cost]
+        if self.callback:
+            self.callback("start", {
+                "T_max": self.T_max,
+                "T_min": self.T_min,
+                "alpha": self.alpha,
+                "iter_per_T": self.iter_per_T,
+                "initial_cost": self.current_cost
+            })
 
-        self.gui.clear_log()
-        self.gui.log(f"Mulai SA: T_max={self.T_max}, T_min={self.T_min}, alpha={self.alpha}, iter_per_T={self.iter_per_T}")
-        self.gui.log(f"Cost awal = {self.current_cost:.4f}")
-
-        self.gui.update_plot(self.iter_history, self.cost_history)
-
-        # disable tombol run selama proses
-        self.gui.set_run_button_state("disabled")
-        self.gui.set_add_clear_buttons_state("disabled")
-
-        # mulai loop
-        self.gui.root.after(1, self.step)
-
-    def stop(self):
-        self.running = False
-        self.gui.set_run_button_state("normal")
-        self.gui.set_add_clear_buttons_state("normal")
-
-    def step(self):
+    def step(self, batch_size=1):
         if not self.running:
-            return
+            return False
 
-        # kalau sudah dingin, selesai
         if self.T <= self.T_min:
-            self.gui.log("SA selesai. Suhu sudah di bawah T_min.")
-            self.gui.log(f"Best cost = {self.best_cost:.4f}")
-            self.gui.show_best_order(self.best_order, self.tasks, self.best_cost)
-            self.stop()
-            return
+            self.running = False
+            if self.callback:
+                self.callback("finish", {
+                    "best_cost": self.best_cost,
+                    "best_order": self.best_order
+                })
+            return False
 
-        # Jalankan beberapa iterasi per panggilan (biar GUI tetap responsif)
-        # Kamu bisa ganti 5 jadi 1 kalau mau animasi lebih halus (tapi lebih lama)
-        step_batch = 5
-        for _ in range(step_batch):
-            if not self.running:
-                return
-
+        for _ in range(batch_size):
             if self.iter_at_T >= self.iter_per_T:
-                # Turunkan suhu, reset counter
                 self.T *= self.alpha
                 self.iter_at_T = 0
-                self.gui.log(f"Turun suhu: T = {self.T:.5f}")
+                if self.callback:
+                    self.callback("temp_change", {"T": self.T})
+                
                 if self.T <= self.T_min:
                     break
 
@@ -157,11 +136,9 @@ class SAVisualizer:
 
             accepted = False
             if delta < 0:
-                # solusi lebih baik
                 self.current_order, self.current_cost = new_order, new_cost
                 accepted = True
             else:
-                # solusi lebih buruk, mungkin diterima
                 prob = math.exp(-delta / self.T)
                 if random.random() < prob:
                     self.current_order, self.current_cost = new_order, new_cost
@@ -170,32 +147,105 @@ class SAVisualizer:
             self.global_iter += 1
             self.iter_at_T += 1
 
-            # update best
             if self.current_cost < self.best_cost:
                 self.best_order = self.current_order[:]
                 self.best_cost = self.current_cost
 
-            # catat ke history untuk plot
-            self.iter_history.append(self.global_iter)
-            self.cost_history.append(self.best_cost)
-
-            # sesekali log
+            # Emit progress every few iterations or on improvement
             if self.global_iter % 50 == 0:
-                self.gui.log(
-                    f"Iter {self.global_iter} | T={self.T:.4f} | "
-                    f"current_cost={self.current_cost:.4f} | best_cost={self.best_cost:.4f} | "
-                    f"{'accepted' if accepted else 'rejected'}"
-                )
+                if self.callback:
+                    self.callback("progress", {
+                        "iter": self.global_iter,
+                        "T": self.T,
+                        "current_cost": self.current_cost,
+                        "best_cost": self.best_cost,
+                        "accepted": accepted
+                    })
+        
+        return True
 
-        # update grafik
-        self.gui.update_plot(self.iter_history, self.cost_history)
+# =========================================================
+#  Headless Runner
+# =========================================================
+def run_headless():
+    # Load tasks
+    if not os.path.exists(HISTORY_FILE):
+        print(json.dumps({"type": "error", "message": "History file not found"}))
+        return
 
-        # jadwalkan step berikutnya
-        self.gui.root.after(1, self.step)
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        tasks = [Task(**item) for item in data]
+    except Exception as e:
+        print(json.dumps({"type": "error", "message": str(e)}))
+        return
+
+    # Callback untuk print JSON
+    def on_event(event_type, data):
+        # Flush stdout agar segera terkirim ke nodejs
+        print(json.dumps({"type": event_type, "data": data}), flush=True)
+
+    # Setup Engine
+    engine = SAEngine(tasks, T_max=100.0, T_min=1.0, alpha=0.95, iter_per_T=200, callback=on_event)
+    engine.start()
+
+    # Loop sampai selesai
+    while engine.running:
+        engine.step(batch_size=50)
+        time.sleep(0.01) # Sedikit delay agar tidak membebani CPU berlebih
+
+# =========================================================
+#  GUI Runner (Legacy Wrapper)
+# =========================================================
+class GUIAdapter:
+    def __init__(self, gui, tasks):
+        self.gui = gui
+        self.engine = SAEngine(tasks, callback=self.on_event)
+        self.iter_history = []
+        self.cost_history = []
+    
+    def on_event(self, event_type, data):
+        if event_type == "start":
+            self.gui.clear_log()
+            self.gui.log(f"Mulai SA: Cost awal = {data['initial_cost']:.4f}")
+            self.iter_history = [0]
+            self.cost_history = [data['initial_cost']]
+            self.gui.update_plot(self.iter_history, self.cost_history)
+            
+        elif event_type == "temp_change":
+            self.gui.log(f"Turun suhu: T = {data['T']:.5f}")
+            
+        elif event_type == "progress":
+            self.iter_history.append(data['iter'])
+            self.cost_history.append(data['best_cost'])
+            self.gui.log(f"Iter {data['iter']} | T={data['T']:.4f} | best={data['best_cost']:.4f}")
+            
+        elif event_type == "finish":
+            self.gui.log("SA selesai.")
+            self.gui.log(f"Best cost = {data['best_cost']:.4f}")
+            self.gui.show_best_order(data['best_order'], self.engine.tasks, data['best_cost'])
+            self.stop()
+
+    def start(self):
+        self.engine.start()
+        self.gui.set_run_button_state("disabled")
+        self.gui.set_add_clear_buttons_state("disabled")
+        self.gui.root.after(1, self.step_loop)
+
+    def stop(self):
+        self.engine.running = False
+        self.gui.set_run_button_state("normal")
+        self.gui.set_add_clear_buttons_state("normal")
+
+    def step_loop(self):
+        if self.engine.step(batch_size=5):
+            self.gui.update_plot(self.iter_history, self.cost_history)
+            self.gui.root.after(1, self.step_loop)
 
 
 # ==========================================
-#  GUI Utama
+#  GUI Utama (Modified to use Adapter)
 # ==========================================
 class ToDoSAGUI:
     def __init__(self, root):
@@ -203,7 +253,7 @@ class ToDoSAGUI:
         self.root.title("Simulated Annealing - Optimisasi Prioritas To-Do List")
 
         self.tasks: List[Task] = []
-        self.sa_visualizer: SAVisualizer | None = None
+        self.adapter: GUIAdapter | None = None
 
         self._build_widgets()
         self.load_history()
@@ -295,7 +345,11 @@ class ToDoSAGUI:
 
         # Plot area
         ttk.Label(right_frame, text="Grafik Best Cost vs Iterasi:").grid(row=2, column=0, sticky="w", pady=(10, 0))
-
+        
+        # Matplotlib Figure
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        
         self.fig, self.ax = plt.subplots(figsize=(5, 3))
         self.ax.set_xlabel("Iterasi")
         self.ax.set_ylabel("Best Cost")
@@ -355,20 +409,12 @@ class ToDoSAGUI:
 
     # ---------- SA control ----------
     def run_sa(self):
-        if self.sa_visualizer is not None and self.sa_visualizer.running:
+        if self.adapter is not None and self.adapter.engine.running:
             messagebox.showinfo("Info", "SA sudah berjalan.")
             return
 
-        # parameter SA bisa kamu tuning di sini
-        self.sa_visualizer = SAVisualizer(
-            gui=self,
-            tasks=self.tasks,
-            T_max=100.0,
-            T_min=1,
-            alpha=0.95,
-            iter_per_T=10
-        )
-        self.sa_visualizer.start()
+        self.adapter = GUIAdapter(self, self.tasks)
+        self.adapter.start()
 
     def set_run_button_state(self, state: str):
         self.btn_run["state"] = state
@@ -415,10 +461,23 @@ class ToDoSAGUI:
 
 
 def main():
-    root = tk.Tk()
-    app = ToDoSAGUI(root)
-    root.protocol("WM_DELETE_WINDOW", lambda: (app.save_history(), root.destroy()))
-    root.mainloop()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--headless", action="store_true", help="Run in headless mode (JSON output)")
+    args = parser.parse_args()
+
+    if args.headless:
+        run_headless()
+    else:
+        # Import GUI libs only here
+        import tkinter as tk
+        from tkinter import ttk, messagebox
+        import matplotlib
+        matplotlib.use("TkAgg")
+        
+        root = tk.Tk()
+        app = ToDoSAGUI(root)
+        root.protocol("WM_DELETE_WINDOW", lambda: (app.save_history(), root.destroy()))
+        root.mainloop()
 
 
 if __name__ == "__main__":
