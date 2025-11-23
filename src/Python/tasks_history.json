@@ -1,0 +1,38 @@
+[
+  {
+    "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "deadline": 24,
+    "duration": 1,
+    "difficulty": 3
+  },
+  {
+    "name": "GIT GOOD",
+    "deadline": 25,
+    "duration": 4,
+    "difficulty": 5
+  },
+  {
+    "name": "Main Rivals",
+    "deadline": 24,
+    "duration": 2,
+    "difficulty": 3
+  },
+  {
+    "name": "Projekt2an",
+    "deadline": 55,
+    "duration": 7,
+    "difficulty": 5
+  },
+  {
+    "name": "Login Harian",
+    "deadline": 24,
+    "duration": 4,
+    "difficulty": 1
+  },
+  {
+    "name": "Anjayao",
+    "deadline": 9,
+    "duration": 3,
+    "difficulty": 5
+  }
+]

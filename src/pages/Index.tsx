@@ -4,7 +4,8 @@ import { TodoItem } from "@/components/TodoItem";
 import { TodoFilter, FilterType } from "@/components/TodoFilter";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Play } from "lucide-react";
+import { toast } from "sonner";
 
 interface Todo {
   id: string;
@@ -20,7 +21,7 @@ const Index = () => {
   const [todos, setTodos] = useState<Todo[]>(() => {
     const saved = localStorage.getItem("todos");
     if (!saved) return [];
-    
+
     const parsed = JSON.parse(saved);
     // Migrasi data lama ke format baru
     return parsed.map((todo: any) => ({
@@ -52,17 +53,43 @@ const Index = () => {
     setTodos([newTodo, ...todos]);
   };
 
-  const exportToJSON = () => {
-    const dataStr = JSON.stringify(todos, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `tasks-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const runSAnnealing = async () => {
+    try {
+      // Transform data for Python script
+      const pythonTasks = todos.map(todo => ({
+        name: todo.text,
+        deadline: todo.deadlineHours,
+        duration: todo.durationHours,
+        difficulty: todo.difficulty
+      }));
+
+      // 1. Save tasks to server
+      const saveResponse = await fetch('http://localhost:3001/api/save-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pythonTasks),
+      });
+
+      if (!saveResponse.ok) throw new Error('Gagal menyimpan data task');
+
+      // 2. Run Python script
+      const runResponse = await fetch('http://localhost:3001/api/run-sa', {
+        method: 'POST',
+      });
+
+      if (!runResponse.ok) throw new Error('Gagal menjalankan Python script');
+
+      toast.success("Simulated Annealing berjalan!", {
+        description: "Aplikasi Python telah dibuka."
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan", {
+        description: error instanceof Error ? error.message : "Gagal menghubungkan ke server"
+      });
+    }
   };
 
   const toggleTodo = (id: string) => {
@@ -125,12 +152,12 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={exportToJSON}
-                className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md"
+                onClick={runSAnnealing}
+                className="flex items-center gap-2 rounded-xl shadow-sm hover:shadow-md bg-primary text-primary-foreground hover:bg-primary/90"
                 disabled={todos.length === 0}
               >
-                <Download className="h-4 w-4" />
-                Export JSON
+                <Play className="h-4 w-4" />
+                SAnneal
               </Button>
             </div>
           </div>
@@ -142,8 +169,8 @@ const Index = () => {
                   {filter === "completed"
                     ? "Belum ada task yang selesai"
                     : filter === "active"
-                    ? "Tidak ada task aktif"
-                    : "Belum ada task. Tambahkan task pertama Anda!"}
+                      ? "Tidak ada task aktif"
+                      : "Belum ada task. Tambahkan task pertama Anda!"}
                 </p>
               </div>
             ) : (
@@ -167,7 +194,7 @@ const Index = () => {
 
         <div className="text-center mt-6 text-sm text-muted-foreground space-y-1">
           <p>Data tersimpan otomatis di browser Anda</p>
-          <p className="text-xs">Export ke JSON untuk digunakan dengan algoritma Simulated Annealing</p>
+          <p className="text-xs">Klik SAnneal untuk menjalankan optimasi dengan Python</p>
         </div>
       </div>
     </div>
