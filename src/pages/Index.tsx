@@ -19,7 +19,19 @@ interface Todo {
 const Index = () => {
   const [todos, setTodos] = useState<Todo[]>(() => {
     const saved = localStorage.getItem("todos");
-    return saved ? JSON.parse(saved) : [];
+    if (!saved) return [];
+    
+    const parsed = JSON.parse(saved);
+    // Migrasi data lama ke format baru
+    return parsed.map((todo: any) => ({
+      id: todo.id,
+      text: todo.text,
+      completed: todo.completed,
+      deadlineHours: todo.deadlineHours || 24,
+      durationHours: todo.durationHours || 1,
+      difficulty: todo.difficulty || todo.priority || 3,
+      createdAt: todo.createdAt || Date.now(),
+    }));
   });
   const [filter, setFilter] = useState<FilterType>("all");
 
