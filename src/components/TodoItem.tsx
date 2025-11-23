@@ -26,6 +26,9 @@ const difficultyConfig: Record<Difficulty, { label: string; color: string }> = {
 };
 
 export const TodoItem = ({ id, text, completed, deadlineHours, durationHours, difficulty, createdAt, onToggle, onDelete }: TodoItemProps) => {
+  // Fallback untuk data lama atau invalid
+  const validDifficulty: Difficulty = (difficulty && difficulty >= 1 && difficulty <= 5) ? difficulty : 3;
+  
   const deadlineTime = createdAt + (deadlineHours * 60 * 60 * 1000);
   const hoursRemaining = (deadlineTime - Date.now()) / (60 * 60 * 1000);
   const isOverdue = hoursRemaining < 0;
@@ -59,9 +62,9 @@ export const TodoItem = ({ id, text, completed, deadlineHours, durationHours, di
           </label>
           
           <div className="flex flex-wrap gap-2 mt-2">
-            <Badge variant="outline" className={difficultyConfig[difficulty].color}>
+            <Badge variant="outline" className={difficultyConfig[validDifficulty].color}>
               <TrendingUp className="h-3 w-3 mr-1" />
-              {difficultyConfig[difficulty].label}
+              {difficultyConfig[validDifficulty].label}
             </Badge>
             
             <Badge
