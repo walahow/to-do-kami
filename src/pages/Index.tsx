@@ -39,6 +39,7 @@ const Index = () => {
   const [filter, setFilter] = useState<FilterType>("all");
   const [chartData, setChartData] = useState<Array<{ iteration: number; cost: number }>>([]);
   const [logs, setLogs] = useState<string[]>([]);
+  const [bestSchedule, setBestSchedule] = useState<string[]>([]);
 
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
@@ -290,7 +291,7 @@ const Index = () => {
           {/* Logs Section */}
           <div className="bg-card rounded-2xl shadow-lg border border-border p-6 backdrop-blur-sm">
             <h2 className="text-xl font-semibold mb-4 text-foreground">Log Proses SA</h2>
-            <ScrollArea className="h-[400px] w-full rounded-md border border-border p-4 bg-muted/30">
+            <ScrollArea className="h-[300px] w-full rounded-md border border-border p-4 bg-muted/30">
               {logs.length > 0 ? (
                 <div className="space-y-1 font-mono text-sm">
                   {logs.map((log, index) => (
@@ -302,6 +303,31 @@ const Index = () => {
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   <p>Log akan muncul setelah menjalankan SA</p>
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+
+          {/* Best Schedule Result Section */}
+          <div className="bg-card rounded-2xl shadow-lg border border-border p-6 backdrop-blur-sm">
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Hasil Kombinasi Tugas (Best Score)</h2>
+            <ScrollArea className="h-[300px] w-full rounded-md border border-border p-4 bg-muted/30">
+              {bestSchedule.length > 0 ? (
+                <div className="space-y-3">
+                  {bestSchedule.map((task, index) => (
+                    <div key={index} className="p-3 bg-background rounded-lg border border-border">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                          {index + 1}
+                        </div>
+                        <p className="text-foreground flex-1">{task}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p>Hasil kombinasi tugas akan muncul setelah menjalankan SA</p>
                 </div>
               )}
             </ScrollArea>
