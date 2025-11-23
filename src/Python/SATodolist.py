@@ -107,9 +107,9 @@ class SAEngine:
     def __init__(
         self,
         tasks: List[Task],
-        T_max: float = 100.0,
+        T_max: float = 1000.0,
         T_min: float = 0.1,
-        alpha: float = 0.95,
+        alpha: float = 0.99,
         iter_per_T: int = 10,
         callback=None,
     ):
@@ -249,10 +249,10 @@ def run_headless():
     # Setup Engine (pakai parameter SA yang baru)
     engine = SAEngine(
         tasks,
-        T_max=100.0,
+        T_max=1000.0,
         T_min=0.1,
-        alpha=0.95,
-        iter_per_T=10,
+        alpha=0.99,
+        iter_per_T=50,
         callback=on_event,
     )
     engine.start()

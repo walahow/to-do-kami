@@ -4,7 +4,7 @@ import { TodoItem } from "@/components/TodoItem";
 import { TodoFilter, FilterType } from "@/components/TodoFilter";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Download, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,7 +23,7 @@ const Index = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
-  const [chartData, setChartData] = useState<Array<{ iteration: number; cost: number }>>([]);
+  const [chartData, setChartData] = useState<Array<{ iteration: number; cost: number; current: number }>>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [bestSchedule, setBestSchedule] = useState<string[]>([]);
 
@@ -143,17 +143,22 @@ const Index = () => {
 
           if (msg.type === 'start') {
             setLogs(prev => [...prev, `Mulai SA: Score awal = ${msg.data.initial_cost.toFixed(4)}`]);
-            setChartData([{ iteration: 0, cost: msg.data.initial_cost }]);
+            setChartData([{ iteration: 0, cost: msg.data.initial_cost, current: msg.data.initial_cost }]);
           }
           else if (msg.type === 'temp_change') {
-            setLogs(prev => [...prev, `Turun suhu: T = ${msg.data.T.toFixed(5)}`]);
+            // Optional: Log temp change if needed
           }
           else if (msg.type === 'progress') {
-            setChartData(prev => [...prev, { iteration: msg.data.iter, cost: msg.data.best_cost }]);
-            setLogs(prev => [...prev, `Iter ${msg.data.iter} | T=${msg.data.T.toFixed(4)} | Score=${msg.data.best_cost.toFixed(4)}`]);
+            setChartData(prev => [...prev, {
+              iteration: msg.data.iter,
+              cost: msg.data.best_cost,
+              current: msg.data.current_cost
+            }]);
+
+            setLogs(prev => [...prev, `Iter ${msg.data.iter} | T=${msg.data.T.toFixed(4)} | Cur=${msg.data.current_cost.toFixed(4)} | Best=${msg.data.best_cost.toFixed(4)}`]);
           }
           else if (msg.type === 'finish') {
-            setLogs(prev => [...prev, `SA Selesai. Best Score = ${msg.data.best_cost.toFixed(4)}`]);
+            setLogs(prev => [...prev, `SA Selesai. Best Score Found = ${msg.data.best_cost.toFixed(4)}`]);
             if (msg.data.best_schedule) {
               setBestSchedule(msg.data.best_schedule);
             }
@@ -196,11 +201,9 @@ const Index = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sort by difficulty first (5 = highest, 1 = lowest)
       if (a.difficulty !== b.difficulty) {
         return b.difficulty - a.difficulty;
       }
-      // Then by time remaining (earlier deadlines first)
       const aTimeRemaining = (a.createdAt + (a.deadlineHours * 60 * 60 * 1000)) - Date.now();
       const bTimeRemaining = (b.createdAt + (b.deadlineHours * 60 * 60 * 1000)) - Date.now();
       return aTimeRemaining - bTimeRemaining;
@@ -293,7 +296,7 @@ const Index = () => {
         <div className="space-y-6">
           {/* Chart Section */}
           <div className="bg-card rounded-2xl shadow-lg border border-border p-6 backdrop-blur-sm">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Grafik Best Score vs Iterasi</h2>
+            <h2 className="text-xl font-semibold mb-4 text-foreground">Grafik Score vs Iterasi</h2>
             <div className="h-[300px] w-full">
               {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -305,7 +308,7 @@ const Index = () => {
                       className="text-muted-foreground"
                     />
                     <YAxis
-                      label={{ value: 'Best Score', angle: -90, position: 'insideLeft' }}
+                      label={{ value: 'Score', angle: -90, position: 'insideLeft' }}
                       className="text-muted-foreground"
                     />
                     <Tooltip
@@ -316,11 +319,21 @@ const Index = () => {
                       }}
                     />
                     <Line
+                      name="Best Score"
                       type="monotone"
                       dataKey="cost"
                       stroke="hsl(var(--primary))"
                       strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+                      dot={false}
+                    />
+                    <Line
+                      name="Current Score"
+                      type="monotone"
+                      dataKey="current"
+                      stroke="#ef4444"
+                      strokeWidth={1}
+                      dot={false}
+                      opacity={0.7}
                     />
                   </LineChart>
                 </ResponsiveContainer>
