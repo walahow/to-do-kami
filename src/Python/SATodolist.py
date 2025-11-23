@@ -114,9 +114,11 @@ class SAEngine:
         if self.T <= self.T_min:
             self.running = False
             if self.callback:
+                best_schedule_names = [self.tasks[i].name for i in self.best_order]
                 self.callback("finish", {
                     "best_cost": self.best_cost,
-                    "best_order": self.best_order
+                    "best_order": self.best_order,
+                    "best_schedule": best_schedule_names
                 })
             return False
 

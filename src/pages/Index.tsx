@@ -112,7 +112,9 @@ const Index = () => {
           }
           else if (msg.type === 'finish') {
             setLogs(prev => [...prev, `SA Selesai. Best Score = ${msg.data.best_cost.toFixed(4)}`]);
-            // Optional: Update todos order based on best_order if you want to reflect it in UI
+            if (msg.data.best_schedule) {
+              setBestSchedule(msg.data.best_schedule);
+            }
           }
           else if (msg.type === 'error') {
             toast.error("Python Error", { description: msg.message });
