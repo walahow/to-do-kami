@@ -1,10 +1,13 @@
 import json
+import matplotlib
 import math
 import os
 import random
 import sys
 import argparse
 import time
+import tkinter as tk
+from tkinter import ttk, messagebox
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
 
@@ -13,7 +16,7 @@ from typing import List, Tuple
 import matplotlib
 # matplotlib.use("TkAgg") # Dipindah ke main agar tidak error di environment tanpa display
 
-HISTORY_FILE = "tasks_history.json"
+HISTORY_FILE = "D:\\to-do-kami-main\\src\\Python\\tasks_history.json"
 
 @dataclass
 class Task:
@@ -26,33 +29,73 @@ class Task:
 # ======================
 #  Fungsi SA (core)
 # ======================
-def compute_cost(order: List[int],
-                 tasks: List[Task],
-                 w_deadline=10.0,
-                 w_difficulty=1.0,
-                 w_makespan=0.1) -> float:
+def compute_cost(
+    order: List[int],
+    tasks: List[Task],
+    w_deadline: float = 5.0,
+    w_difficulty: float = 2.5,
+    w_makespan: float = 0.05,
+) -> float:
+    """
+    Cost = kombinasi keterlambatan dan kesulitan.
+    - lateness dihitung per task: max(0, finish_time - deadline)
+    - tugas yang sulit (difficulty tinggi) yang telat akan kena penalti lebih besar
+    - makespan diberi bobot kecil hanya agar jadwal tidak terlalu panjang
+    """
     t = 0.0
-    total_lateness = 0.0
-    difficulty_penalty = 0.0
+    total_cost = 0.0
 
-    for pos, idx in enumerate(order):
+    for idx in order:
         task = tasks[idx]
         t += task.duration
-        lateness = max(0.0, t - task.deadline)
-        total_lateness += lateness
-        difficulty_penalty += task.difficulty * pos
 
-    makespan = t
-    cost = (w_deadline * total_lateness +
-            w_difficulty * difficulty_penalty +
-            w_makespan * makespan)
-    return cost
+        lateness = max(0.0, t - task.deadline)
+
+        # Penalti utama: telat terhadap deadline
+        total_cost += w_deadline * lateness
+
+        # Penalti tambahan: kalau tugas sulit telat, hukum lebih berat
+        total_cost += w_difficulty * task.difficulty * lateness
+
+    # Penalti kecil untuk total waktu (opsional, supaya tidak terlalu molor)
+    total_cost += w_makespan * t
+
+    return total_cost
 
 
 def neighbour(order: List[int]) -> List[int]:
+    """
+    Membuat solusi tetangga dari urutan sekarang.
+    Dipakai beberapa jenis operator:
+    - swap dua posisi acak
+    - reverse segmen
+    - insert: ambil satu task dan sisipkan di posisi lain
+
+    Ini jauh lebih kuat daripada hanya swap.
+    """
+    n = len(order)
+    if n < 2:
+        return order[:]
+
     new_order = order.copy()
-    i, j = random.sample(range(len(order)), 2)
-    new_order[i], new_order[j] = new_order[j], new_order[i]
+    r = random.random()
+
+    if r < 0.33:
+        # SWAP dua posisi random
+        i, j = random.sample(range(n), 2)
+        new_order[i], new_order[j] = new_order[j], new_order[i]
+
+    elif r < 0.66:
+        # REVERSE segmen kecil
+        i, j = sorted(random.sample(range(n), 2))
+        new_order[i:j+1] = reversed(new_order[i:j+1])
+
+    else:
+        # INSERT: ambil satu elemen dan masukkan ke posisi lain
+        i, j = random.sample(range(n), 2)
+        elem = new_order.pop(i)
+        new_order.insert(j, elem)
+
     return new_order
 
 
@@ -60,10 +103,22 @@ def neighbour(order: List[int]) -> List[int]:
 #  SA Logic (Decoupled from GUI)
 # =========================================================
 class SAEngine:
-    def __init__(self, tasks: List[Task],
-                 T_max=100.0, T_min=0.1,
-                 alpha=0.95, iter_per_T=500,
-                 callback=None):
+    def __init__(
+        self,
+        tasks: List[Task],
+        T_max: float = 100.0,
+        T_min: float = 0.1,
+        alpha: float = 0.95,
+        iter_per_T: int = 10,
+        callback=None,
+    ):
+        """
+        Parameter default diganti supaya:
+        - T_max cukup tinggi (bisa eksplor solusi jelek di awal)
+        - T_min kecil (berhenti saat sudah benar-benar "dingin")
+        - alpha mendekati 1 (pendinginan pelan → eksplorasi lebih stabil)
+        - iter_per_T besar (lebih banyak percobaan per suhu)
+        """
         self.tasks = tasks
         self.T_max = T_max
         self.T_min = T_min
@@ -92,7 +147,7 @@ class SAEngine:
         self.iter_at_T = 0
         self.global_iter = 0
         
-        # Solusi awal
+        # Solusi awal: urutkan berdasarkan deadline (heuristik masuk akal)
         self.current_order = sorted(range(self.n), key=lambda i: self.tasks[i].deadline)
         self.current_cost = compute_cost(self.current_order, self.tasks)
         self.best_order = self.current_order[:]
@@ -138,9 +193,11 @@ class SAEngine:
 
             accepted = False
             if delta < 0:
+                # solusi lebih bagus → selalu diterima
                 self.current_order, self.current_cost = new_order, new_cost
                 accepted = True
             else:
+                # solusi lebih buruk → diterima dengan probabilitas exp(-delta / T)
                 prob = math.exp(-delta / self.T)
                 if random.random() < prob:
                     self.current_order, self.current_cost = new_order, new_cost
@@ -153,7 +210,7 @@ class SAEngine:
                 self.best_order = self.current_order[:]
                 self.best_cost = self.current_cost
 
-            # Emit progress every few iterations or on improvement
+            # Emit progress setiap beberapa iterasi
             if self.global_iter % 50 == 0:
                 if self.callback:
                     self.callback("progress", {
@@ -188,8 +245,15 @@ def run_headless():
         # Flush stdout agar segera terkirim ke nodejs
         print(json.dumps({"type": event_type, "data": data}), flush=True)
 
-    # Setup Engine
-    engine = SAEngine(tasks, T_max=100.0, T_min=1.0, alpha=0.95, iter_per_T=200, callback=on_event)
+    # Setup Engine (pakai parameter SA yang baru)
+    engine = SAEngine(
+        tasks,
+        T_max=100.0,
+        T_min=0.1,
+        alpha=0.95,
+        iter_per_T=10,
+        callback=on_event,
+    )
     engine.start()
 
     # Loop sampai selesai
@@ -203,6 +267,7 @@ def run_headless():
 class GUIAdapter:
     def __init__(self, gui, tasks):
         self.gui = gui
+        # SAEngine pakai default baru yang lebih masuk akal
         self.engine = SAEngine(tasks, callback=self.on_event)
         self.iter_history = []
         self.cost_history = []
@@ -471,9 +536,7 @@ def main():
         run_headless()
     else:
         # Import GUI libs only here
-        import tkinter as tk
-        from tkinter import ttk, messagebox
-        import matplotlib
+
         matplotlib.use("TkAgg")
         
         root = tk.Tk()

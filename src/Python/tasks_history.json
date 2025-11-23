@@ -1,38 +1,62 @@
 [
   {
-    "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "deadline": 24,
-    "duration": 1,
+    "name": "Algoritma Dasar",
+    "deadline": 4,
+    "duration": 3,
+    "difficulty": 4
+  },
+  {
+    "name": "Struktur Data",
+    "deadline": 5,
+    "duration": 3.5,
     "difficulty": 3
   },
   {
-    "name": "GIT GOOD",
-    "deadline": 25,
+    "name": "Basis Data",
+    "deadline": 6,
     "duration": 4,
+    "difficulty": 4
+  },
+  {
+    "name": "Jaringan Komputer",
+    "deadline": 4.5,
+    "duration": 2.5,
+    "difficulty": 2
+  },
+  {
+    "name": "Sistem Operasi",
+    "deadline": 7,
+    "duration": 5,
     "difficulty": 5
   },
   {
-    "name": "Main Rivals",
-    "deadline": 24,
-    "duration": 2,
-    "difficulty": 3
-  },
-  {
-    "name": "Projekt2an",
-    "deadline": 55,
-    "duration": 7,
-    "difficulty": 5
-  },
-  {
-    "name": "Login Harian",
-    "deadline": 24,
+    "name": "Pemrograman Web",
+    "deadline": 12,
     "duration": 4,
+    "difficulty": 2
+  },
+  {
+    "name": "Desain UI/UX",
+    "deadline": 14,
+    "duration": 3,
     "difficulty": 1
   },
   {
-    "name": "Anjayao",
-    "deadline": 9,
-    "duration": 3,
+    "name": "Statistik Komputasi",
+    "deadline": 24,
+    "duration": 4,
+    "difficulty": 3
+  },
+  {
+    "name": "Machine Learning",
+    "deadline": 30,
+    "duration": 6,
     "difficulty": 5
+  },
+  {
+    "name": "Manajemen Proyek IT",
+    "deadline": 20,
+    "duration": 3,
+    "difficulty": 2
   }
 ]
