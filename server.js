@@ -31,6 +31,22 @@ app.post('/api/save-tasks', async (req, res) => {
     }
 });
 
+// Endpoint to get tasks
+app.get('/api/get-tasks', async (req, res) => {
+    try {
+        const data = await fs.readFile(HISTORY_FILE, 'utf-8');
+        const tasks = JSON.parse(data);
+        res.json(tasks);
+    } catch (error) {
+        console.error('Error reading tasks:', error);
+        if (error.code === 'ENOENT') {
+            res.json([]);
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to read tasks' });
+        }
+    }
+});
+
 // Endpoint to run Python script with SSE
 app.get('/api/run-sa', (req, res) => {
     console.log('Starting Python script (Headless)...');

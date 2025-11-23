@@ -20,30 +20,72 @@ interface Todo {
 }
 
 const Index = () => {
-  const [todos, setTodos] = useState<Todo[]>(() => {
-    const saved = localStorage.getItem("todos");
-    if (!saved) return [];
-
-    const parsed = JSON.parse(saved);
-    // Migrasi data lama ke format baru
-    return parsed.map((todo: any) => ({
-      id: todo.id,
-      text: todo.text,
-      completed: todo.completed,
-      deadlineHours: todo.deadlineHours || 24,
-      durationHours: todo.durationHours || 1,
-      difficulty: todo.difficulty || todo.priority || 3,
-      createdAt: todo.createdAt || Date.now(),
-    }));
-  });
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const [chartData, setChartData] = useState<Array<{ iteration: number; cost: number }>>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [bestSchedule, setBestSchedule] = useState<string[]>([]);
 
+  // Load tasks from server on mount
   useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/get-tasks');
+        if (!response.ok) throw new Error('Failed to fetch tasks');
+
+        const data = await response.json();
+        const loadedTodos = data.map((t: any, index: number) => ({
+          id: Date.now().toString() + index,
+          text: t.name,
+          completed: false,
+          deadlineHours: t.deadline,
+          durationHours: t.duration,
+          difficulty: t.difficulty,
+          createdAt: Date.now(),
+        }));
+
+        setTodos(loadedTodos);
+        setIsLoaded(true);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        toast.error("Gagal memuat data task");
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  // Save tasks to server when todos change
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const saveTasks = async () => {
+      try {
+        const pythonTasks = todos.map(todo => ({
+          name: todo.text,
+          deadline: todo.deadlineHours,
+          duration: todo.durationHours,
+          difficulty: todo.difficulty
+        }));
+
+        await fetch('http://localhost:3001/api/save-tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(pythonTasks),
+        });
+      } catch (error) {
+        console.error("Error saving tasks:", error);
+        toast.error("Gagal menyimpan perubahan");
+      }
+    };
+
+    // Debounce save slightly to avoid too many requests
+    const timeoutId = setTimeout(saveTasks, 500);
+    return () => clearTimeout(timeoutId);
+  }, [todos, isLoaded]);
 
   const addTodo = (text: string, deadlineHours: number, durationHours: number, difficulty: Difficulty) => {
     const newTodo: Todo = {

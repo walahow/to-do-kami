@@ -16,7 +16,8 @@ from typing import List, Tuple
 import matplotlib
 # matplotlib.use("TkAgg") # Dipindah ke main agar tidak error di environment tanpa display
 
-HISTORY_FILE = "D:\\to-do-kami-main\\src\\Python\\tasks_history.json"
+# HISTORY_FILE = "D:\\to-do-kami-main\\src\\Python\\tasks_history.json"
+HISTORY_FILE = os.path.join(os.path.dirname(__file__), "tasks_history.json")
 
 @dataclass
 class Task:
