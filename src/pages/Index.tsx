@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TodoInput, Priority } from "@/components/TodoInput";
+import { TodoInput, Difficulty } from "@/components/TodoInput";
 import { TodoItem } from "@/components/TodoItem";
 import { TodoFilter, FilterType } from "@/components/TodoFilter";
 import { CheckCircle2 } from "lucide-react";
@@ -10,8 +10,9 @@ interface Todo {
   id: string;
   text: string;
   completed: boolean;
-  deadline: Date | null;
-  priority: Priority;
+  deadlineHours: number;
+  durationHours: number;
+  difficulty: Difficulty;
   createdAt: number;
 }
 
@@ -26,13 +27,14 @@ const Index = () => {
     localStorage.setItem("todos", JSON.stringify(todos));
   }, [todos]);
 
-  const addTodo = (text: string, deadline: Date | null, priority: Priority) => {
+  const addTodo = (text: string, deadlineHours: number, durationHours: number, difficulty: Difficulty) => {
     const newTodo: Todo = {
       id: Date.now().toString(),
       text,
       completed: false,
-      deadline,
-      priority,
+      deadlineHours,
+      durationHours,
+      difficulty,
       createdAt: Date.now(),
     };
     setTodos([newTodo, ...todos]);
@@ -66,18 +68,14 @@ const Index = () => {
       return true;
     })
     .sort((a, b) => {
-      // Sort by priority first (5 = highest, 1 = lowest)
-      if (a.priority !== b.priority) {
-        return b.priority - a.priority; // Higher priority first
+      // Sort by difficulty first (5 = highest, 1 = lowest)
+      if (a.difficulty !== b.difficulty) {
+        return b.difficulty - a.difficulty;
       }
-      // Then by deadline (earlier deadlines first, null deadlines last)
-      if (a.deadline && b.deadline) {
-        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-      }
-      if (a.deadline && !b.deadline) return -1;
-      if (!a.deadline && b.deadline) return 1;
-      // Finally by creation date
-      return b.createdAt - a.createdAt;
+      // Then by time remaining (earlier deadlines first)
+      const aTimeRemaining = (a.createdAt + (a.deadlineHours * 60 * 60 * 1000)) - Date.now();
+      const bTimeRemaining = (b.createdAt + (b.deadlineHours * 60 * 60 * 1000)) - Date.now();
+      return aTimeRemaining - bTimeRemaining;
     });
 
   const counts = {
@@ -143,8 +141,10 @@ const Index = () => {
                   id={todo.id}
                   text={todo.text}
                   completed={todo.completed}
-                  deadline={todo.deadline ? new Date(todo.deadline) : null}
-                  priority={todo.priority}
+                  deadlineHours={todo.deadlineHours}
+                  durationHours={todo.durationHours}
+                  difficulty={todo.difficulty}
+                  createdAt={todo.createdAt}
                   onToggle={toggleTodo}
                   onDelete={deleteTodo}
                 />
