@@ -298,11 +298,6 @@ const Index = () => {
                 )}
               </div>
             </div>
-
-            <div className="text-center mt-6 text-sm text-muted-foreground space-y-1">
-              <p>Data tersimpan otomatis di browser Anda</p>
-              <p className="text-xs">Klik SAnneal untuk menjalankan optimasi dengan Python</p>
-            </div>
           </div>
 
           {/* Right Column - Chart and Logs */}
