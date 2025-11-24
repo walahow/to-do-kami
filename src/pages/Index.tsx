@@ -228,22 +228,24 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Centered Brand Header */}
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-500">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="p-2 bg-primary/10 rounded-2xl shadow-sm">
+              <CheckCircle2 className="h-10 w-10 text-primary" />
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
+              My Tasks
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Kelola task harian Anda dengan mudah dan efisien
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Todo List */}
           <div className="space-y-6">
-            <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-500">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <div className="p-2 bg-primary/10 rounded-2xl shadow-sm">
-                  <CheckCircle2 className="h-10 w-10 text-primary" />
-                </div>
-                <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
-                  My Tasks
-                </h1>
-              </div>
-              <p className="text-muted-foreground text-lg">
-                Kelola task harian Anda dengan mudah dan efisien
-              </p>
-            </div>
 
             <div className="bg-card rounded-2xl shadow-lg border border-border p-6 md:p-8 space-y-6 backdrop-blur-sm">
               <TodoInput onAdd={addTodo} />
@@ -359,7 +361,7 @@ const Index = () => {
             {/* Logs Section */}
             <div className="bg-card rounded-2xl shadow-lg border border-border p-6 backdrop-blur-sm">
               <h2 className="text-xl font-semibold mb-4 text-foreground">Log Proses SA</h2>
-              <ScrollArea className="h-[300px] w-full rounded-md border border-border p-4 bg-muted/30">
+              <ScrollArea className="h-[500px] w-full rounded-md border border-border p-4 bg-muted/30">
                 {logs.length > 0 ? (
                   <div className="space-y-1 font-mono text-sm">
                     {logs.map((log, index) => (
