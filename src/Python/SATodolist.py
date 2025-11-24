@@ -170,11 +170,27 @@ class SAEngine:
         if self.T <= self.T_min:
             self.running = False
             if self.callback:
-                best_schedule_names = [self.tasks[i].name for i in self.best_order]
+                # Calculate detailed metrics for the best schedule
+                detailed_schedule = []
+                current_time = 0.0
+                for idx in self.best_order:
+                    task = self.tasks[idx]
+                    current_time += task.duration
+                    lateness = max(0.0, current_time - task.deadline)
+                    detailed_schedule.append({
+                        "name": task.name,
+                        "duration": task.duration,
+                        "deadline": task.deadline,
+                        "difficulty": task.difficulty,
+                        "finish_time": current_time,
+                        "lateness": lateness
+                    })
+
                 self.callback("finish", {
                     "best_cost": self.best_cost,
                     "best_order": self.best_order,
-                    "best_schedule": best_schedule_names
+                    "best_schedule": [t.name for t in self.tasks], # Legacy support if needed
+                    "detailed_schedule": detailed_schedule
                 })
             return False
 
